@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@babel/core": "^7.16.0",
+    "@craco/craco": "^7.1.0",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.3",
     "@svgr/webpack": "^5.5.0",
     "@testing-library/dom": "^10.4.0",
@@ -33,6 +34,7 @@
     "jest-resolve": "^27.4.2",
     "jest-watch-typeahead": "^1.0.0",
     "mini-css-extract-plugin": "^2.4.5",
+    "monaco-editor": "^0.52.2",
     "postcss": "^8.4.4",
     "postcss-flexbugs-fixes": "^5.0.2",
     "postcss-loader": "^6.2.1",
@@ -41,6 +43,7 @@
     "prompts": "^2.4.2",
     "react": "^19.1.0",
     "react-app-polyfill": "^3.0.0",
+    "react-cytoscapejs": "^2.0.0",
     "react-dev-utils": "^12.0.1",
     "react-dom": "^19.1.0",
     "react-refresh": "^0.11.0",
@@ -59,9 +62,9 @@
     "workbox-webpack-plugin": "^6.4.1"
   },
   "scripts": {
-    "start": "node scripts/start.js",
-    "build": "node scripts/build.js",
-    "test": "node scripts/test.js"
+    "start": "craco start",
+    "build": "craco build",
+    "test": "craco test"
   },
   "eslintConfig": {
     "extends": [
