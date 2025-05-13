@@ -33,11 +33,11 @@ const FileExplorer = ({ fileTree, level = 0 }) => {
         const indentStyle = { '--indent-level': level };
 
         return (
-          <li key={item.path} style={indentStyle} {...filePathAttr} className="explorer-item">
-            <span className={`explorer-item-icon ${iconClass}`}></span>
-            <span className="explorer-item-name">{name}</span>
+          <li key={item.path} style={indentStyle} {...filePathAttr} className="explorer-item flex items-center py-0.5 pr-2 hover:bg-gray-700 cursor-pointer">
+            <span className={`explorer-item-icon ${iconClass} mr-1.5 w-5 h-5 flex items-center justify-center`}></span>
+            <span className="explorer-item-name text-gray-200 text-sm">{name}</span>
             {isDir && Object.keys(item.children).length > 0 && (
-              <ul>
+              <ul className="list-none m-0 p-0">
                 {generateFileExplorerItems(item.children, level + 1)}
               </ul>
             )}
@@ -47,7 +47,7 @@ const FileExplorer = ({ fileTree, level = 0 }) => {
   };
 
   return (
-    <ul>
+    <ul className="list-none m-0 p-0">
       {generateFileExplorerItems(fileTree, level)}
     </ul>
   );

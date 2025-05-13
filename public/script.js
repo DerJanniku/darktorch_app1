@@ -4,6 +4,7 @@ const notes = {}; // Store notes in memory for now { fileId: noteContent }
 let selectedFileId = null; // Currently selected file ID (full path)
 let uploadedFilesContent = {}; // Store content of uploaded files { path: content }
 let allFilePaths = []; // Store all available file paths for mention suggestions
+let originalGraphElements = []; // Store all originally processed graph elements
 
 // Mention feature related DOM elements
 let noteEditorElement = null;
@@ -17,6 +18,10 @@ const graphTab = document.getElementById('graph-tab');
 const editorTab = document.getElementById('editor-tab');
 const graphContainer = document.getElementById('graph-container');
 const editorContainer = document.getElementById('editor-container');
+const graphControlsContainer = document.getElementById('graph-controls-container'); // New
+const graphFilterInput = document.getElementById('graph-filter-input'); // New
+const applyFilterButton = document.getElementById('apply-filter-button'); // New
+const clearFilterButton = document.getElementById('clear-filter-button'); // New
 
 function setActiveTab(tabElement) {
     // Remove active class from all tabs
@@ -29,6 +34,8 @@ function showGraphView() {
     setActiveTab(graphTab);
     graphContainer.classList.remove('hidden');
     editorContainer.classList.add('hidden');
+    if (graphControlsContainer) graphControlsContainer.style.display = 'flex'; // Show graph controls
+
     // Ensure graph resizes correctly when shown
     if (cy) {
         cy.resize();
@@ -41,7 +48,8 @@ function showGraphView() {
 function showEditorView(filePath, fileContent = '// File content not loaded') {
      setActiveTab(editorTab);
      graphContainer.classList.add('hidden');
-     editorContainer.classList.remove('hidden');
+     editorContainer.classList.remove('hidden'); // Corrected: Show editor container
+    if (graphControlsContainer) graphControlsContainer.style.display = 'none'; // Hide graph controls
 
     // Initialize or update Monaco Editor
     if (!editor) {
@@ -86,6 +94,7 @@ function showEditorView(filePath, fileContent = '// File content not loaded') {
 // Initialize Cytoscape
 function initCytoscape(elements) {
      if (cy) {
+         cy.stop(true, true); // Stop any ongoing animations/layouts and clear queue
          cy.destroy(); // Destroy previous instance if exists
      }
      cy = cytoscape({
@@ -103,34 +112,35 @@ function initCytoscape(elements) {
                     'color': '#cccccc', // Label color
                     'text-valign': 'bottom', // Position label below the node
                     'text-halign': 'center',
-                    'text-margin-y': 5, // Space between node and label
+                    'text-margin-y': 3, // Adjusted margin
                     'font-size': '9px', // Smaller font size for labels under points
                     'text-wrap': 'wrap',
                     'text-max-width': '80px',
                     'shape': 'ellipse', // Use ellipse/circle for the point
-                    'width': '20px', // Increased fixed size for the point
-                    'height': '20px', // Increased fixed size for the point
+                    'width': '10px', // Smaller, more dot-like
+                    'height': '10px', // Smaller, more dot-like
                     // 'padding': '25px', // Padding no longer needed for points
                     'transition-property': 'background-color, border-color, width, height', // Added width/height transition
                     'transition-duration': '0.2s'
                 }
             },
             {
-                selector: 'node[isParent]', // Style for parent nodes (directories) - keep as rectangles
+                selector: 'node[isParent]', // Style for parent nodes (directories)
                 style: {
-                    'background-color': '#252526', // Match sidebar bg
-                    'border-color': '#444444',
-                    'border-width': 1,
+                    'background-color': '#666666', // A distinct grey for directories
+                    'border-width': 0,
                     'label': 'data(name)',
-                    'color': '#aaaaaa', // Dimmer text for dirs
-                    'font-size': '12px',
+                    'color': '#dddddd', // Brighter label for directories
+                    'font-size': '10px', // Adjusted font size
                     'font-weight': 'normal',
-                    'shape': 'round-rectangle',
-                    'padding': '25px', // Increased padding for larger directories
-                    'text-valign': 'center', // Keep label centered for directories
+                    'shape': 'ellipse', // Changed from round-rectangle
+                    'width': '15px', // Slightly larger than file nodes
+                    'height': '15px', // Slightly larger than file nodes
+                    'text-valign': 'bottom', // Label below the node
                     'text-halign': 'center',
-                    'background-opacity': 0.7, // Slightly less opaque
-                    'transition-property': 'background-color, border-color',
+                    'text-margin-y': 3, // Adjusted margin
+                    'background-opacity': 1, // Full opacity
+                    'transition-property': 'background-color, width, height',
                     'transition-duration': '0.2s'
                 }
             },
@@ -236,12 +246,12 @@ function initCytoscape(elements) {
                     // Label of selected node
                     'color': '#ffffff', // White label text
                     'font-weight': 'bold',
-                    // Glow effect for selected node
-                    'shadow-blur': 15,
-                    'shadow-color': '#007acc',
-                    'shadow-opacity': 0.7,
-                    'shadow-offset-x': 0,
-                    'shadow-offset-y': 0
+                    // Glow effect for selected node (properties removed as they are invalid)
+                    // 'shadow-blur': 15,
+                    // 'shadow-color': '#007acc',
+                    // 'shadow-opacity': 0.7,
+                    // 'shadow-offset-x': 0,
+                    // 'shadow-offset-y': 0
                 }
             },
              {
@@ -271,13 +281,13 @@ function initCytoscape(elements) {
                     'opacity': 0.8,
                     // Highlight neighbor labels
                     'color': '#eeeeee', // Slightly brighter label text
-                    // Subtle glow for highlighted points
-                    'shadow-blur': 8,
-                    'shadow-color': '#007acc',
-                    'shadow-opacity': 0.5,
-                    'shadow-offset-x': 0,
-                    'shadow-offset-y': 0,
-                    'transition-property': 'background-color, border-color, line-color, opacity, shadow-blur, width, height',
+                    // Subtle glow for highlighted points (properties removed as they are invalid)
+                    // 'shadow-blur': 8,
+                    // 'shadow-color': '#007acc',
+                    // 'shadow-opacity': 0.5,
+                    // 'shadow-offset-x': 0,
+                    // 'shadow-offset-y': 0,
+                    'transition-property': 'background-color, border-color, line-color, opacity, width, height', // Removed shadow-blur from transition
                     'transition-duration': '0.2s'
                 }
             }
@@ -387,12 +397,14 @@ function initCytoscape(elements) {
 
     // Initial fit after layout is done
     cy.ready(function(){
+        if (!cy || cy.destroyed()) return; // Guard against operations on destroyed instance
         cy.fit();
          showGraphView(); // Show graph initially
     });
 
     // Re-run layout briefly on node drag release to simulate physics
     cy.on('dragfree', 'node', function(event) {
+        if (!cy || cy.destroyed()) return; // Guard
         // Only re-layout non-parent nodes if needed, or just layout all
         // if (!event.target.data('isParent')) {
             console.log('Node drag finished, running layout...');
@@ -611,6 +623,7 @@ function parseMentionsAndUpdateGraph(sourceFileId, noteContent) {
 
     // Optional: Re-apply layout if graph structure changed
     if (graphChanged) {
+        if (!cy || cy.destroyed()) return; // Guard before layout
         console.log("Mention edges changed, re-running layout...");
         cy.layout({
             name: 'cose', // Or the layout you prefer
@@ -822,6 +835,8 @@ async function processUploadedFiles(files) {
     console.log('Finished reading file contents.');
     console.log('All file paths for mentions:', allFilePaths); // Log for debugging
 
+    originalGraphElements = JSON.parse(JSON.stringify(elements)); // Store a deep copy
+
     return { elements, fileTree };
 }
 
@@ -830,6 +845,8 @@ async function processUploadedFiles(files) {
 document.getElementById('folder-upload').addEventListener('change', async (event) => {
     const files = event.target.files;
     if (files.length > 0) {
+        // Clear filter input on new folder upload
+        if (graphFilterInput) graphFilterInput.value = '';
         // Get folder name from the first file's path
         const folderName = files[0].webkitRelativePath.split('/')[0];
         // Update the new selected folder display
@@ -981,12 +998,58 @@ document.addEventListener('DOMContentLoaded', () => {
     initCytoscape([]);
     // Display a message prompting the user to select a folder
     document.getElementById('cy').innerHTML = '<p class="text-center text-gray-500 mt-10">Select a project folder using the button above to visualize its structure.</p>';
-    // Show the graph view by default on load
+    // Show the graph view by default on load, which now also shows/hides graph controls
     showGraphView();
     // Clear the NEW file explorer initially
     document.getElementById('vscode-file-explorer').innerHTML = '<p class="text-gray-500 text-sm p-2">Select a folder to view files.</p>';
 
     // --- Event Listeners ---
+
+    // Graph Filter Buttons
+    if (applyFilterButton) {
+        applyFilterButton.addEventListener('click', () => {
+            const filterText = graphFilterInput.value.toLowerCase().trim();
+            if (!filterText) {
+                // If filter is empty, show all original elements
+                initCytoscape(originalGraphElements);
+                return;
+            }
+            if (originalGraphElements.length > 0) {
+                const filteredElements = originalGraphElements.filter(el => {
+                    if (el.data.id) { // Nodes have id
+                        // Keep node if its id (path) or name contains the filter text
+                        // Also, always keep directory nodes for structure, or filter them too?
+                        // For now, let's filter everything by name/id.
+                        // The user mentioned filtering "libraries", path based filtering is good.
+                        return el.data.id.toLowerCase().includes(filterText) ||
+                               (el.data.name && el.data.name.toLowerCase().includes(filterText));
+                    }
+                    return true; // Keep edges for now, Cytoscape will hide edges if nodes are gone
+                });
+                // We need to ensure that edges only connect visible nodes.
+                // A simpler approach for now: filter nodes, then add back only edges that connect these filtered nodes.
+                const visibleNodeIds = new Set(filteredElements.filter(el => el.group === 'nodes').map(n => n.data.id));
+                const finalFilteredElements = filteredElements.filter(el => {
+                    if (el.group === 'edges') {
+                        return visibleNodeIds.has(el.data.source) && visibleNodeIds.has(el.data.target);
+                    }
+                    return true; // It's a node that already passed the filter
+                });
+
+                initCytoscape(finalFilteredElements);
+            }
+        });
+    }
+
+    if (clearFilterButton) {
+        clearFilterButton.addEventListener('click', () => {
+            graphFilterInput.value = '';
+            if (originalGraphElements.length > 0) {
+                initCytoscape(originalGraphElements);
+            }
+        });
+    }
+
 
     // Sidebar Toggle
     const toggleButton = document.getElementById('sidebar-toggle');
@@ -1070,6 +1133,4 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         console.error("Note editor element not found on DOMContentLoaded.");
     }
-
-
 });
